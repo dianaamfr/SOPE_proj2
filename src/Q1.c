@@ -31,7 +31,7 @@ void * handle_request(void *arg){
     sprintf(fifoName,"/tmp/%d.%lu",msg->pid,msg->tid);
 
     int fd;
-    if((fd = open(fifoName,O_WRONLY)) == -1){ // Opening Client FIFO
+    if((fd = open(fifoName,O_WRONLY|O_NONBLOCK)) == -1){ // Opening Client FIFO
         fprintf(stderr,"Error opening '%s' in WRITEONLY mode.\n",fifoName);
         logOP(GAVUP,msg->i,msg->dur,msg->pl);
         incrementThreadsAvailable();
@@ -73,7 +73,7 @@ void * refuse_request(void *arg){
     sprintf(fifoName,"/tmp/%d.%lu",msg.pid,msg.tid);
     
     int fd;
-    if((fd = open(fifoName,O_WRONLY)) == -1){
+    if((fd = open(fifoName,O_WRONLY|O_NONBLOCK)) == -1){
         fprintf(stderr,"Error opening '%s' in WRITEONLY mode.\n",fifoName);
         logOP(GAVUP,msg.i,msg.dur,msg.pl);
         incrementThreadsAvailable();
@@ -204,7 +204,6 @@ int main(int argc, char * argv[]){
         exit(ERROR);
     }
 
-
     int terminated[] = {a.nsecs, 0}; // Second element will be 1 if time is over, creating no more threads on main thread
     
     // Creating the synchronous thread that just checks if the time ended
@@ -218,6 +217,11 @@ int main(int argc, char * argv[]){
     if(pthread_detach(timechecker) != OK){
         fprintf(stderr,"Error detaching timeChecker thread.\n");
         free(threads);
+        exit(ERROR);
+    }
+
+    if (ignoreSIGPIPE() != OK){
+        fprintf(stderr,"Error ignoring SIGPIPE\n");
         exit(ERROR);
     }
 
