@@ -42,14 +42,26 @@ void * handle_request(void *arg){
     msg->pid = getppid();
     msg->tid = pthread_self();
 
-    if(write(fd, msg, sizeof(message)) == -1){ // Writing to Client FIFO
+    int tries = 10;
+    int w;
+    do{
+        w = write(fd, msg, sizeof(message));
+        if(w <= 0){
+            if(isNotNonBlockingError() && errno != EAGAIN)
+                break;
+            else
+                tries--;
+        }
+        else if(w > 0)
+            break;
+    } while(tries > 0);
+
+    if(w > 0)
+        logOP(ENTER,msg->i,msg->dur,msg->pl);
+    else{
         fprintf(stderr,"Error writing response to Client.\n");
         logOP(GAVUP,msg->i,msg->dur,msg->pl);
-        incrementThreadsAvailable();
-        free(arg);
-        return NULL;
     }
-    logOP(ENTER,msg->i,msg->dur,msg->pl);
 
     close(fd);
 
@@ -86,15 +98,26 @@ void * refuse_request(void *arg){
     msg.pl = -1;
     msg.dur = -1;
 
-    if(write(fd, &msg, sizeof(message)) == -1){
+    int tries = 10;
+    int w;
+    do{
+        w = write(fd, &msg, sizeof(message));
+        if(w <= 0){
+            if(isNotNonBlockingError() && errno != EAGAIN)
+                break;
+            else
+                tries--;
+        }
+        else if(w > 0)
+            break;
+    } while(tries > 0);
+
+    if(w > 0)
+        logOP(TLATE,msg.i,msg.dur,msg.pl);
+    else{
         fprintf(stderr,"Error writing response to Client.\n");
         logOP(GAVUP,msg.i,msg.dur,msg.pl);
-        incrementThreadsAvailable();
-        free(arg);
-        return NULL;
     }
-
-    logOP(TLATE,msg.i,msg.dur,msg.pl);
 
     close(fd);
 
@@ -107,11 +130,12 @@ void * refuse_request(void *arg){
 
 void * server_closing(void * arg){
 
+    int *server_opened = (int * )arg;
     pthread_t * threads = (pthread_t *) malloc(MAX_THREADS * sizeof(pthread_t));
 
     int threadNum = 0; // Start counting again
 
-    while(1){
+    while(server_opened){
 
         message * msg = (message *) malloc(sizeof(message));
         
@@ -283,7 +307,8 @@ int main(int argc, char * argv[]){
     
     // Create thread to handle requests while server is closing
     pthread_t sclosing_thread;
-    pthread_create(&sclosing_thread, NULL, server_closing, NULL);
+    int server_opened = 1;
+    pthread_create(&sclosing_thread, NULL, server_closing, &server_opened);
 
     // Wait for all threads to finish except the ones thrown when server was already closing
     for(int i = 0; i < threadNum; i++){
@@ -294,6 +319,8 @@ int main(int argc, char * argv[]){
         fprintf(stderr, "Error when destroying '%s'.\n",fifoName);
         exit(ERROR);
     }
+
+    server_opened = 0;
     
     // Wait for the thread that is handling the requests sent when the server was closing
     pthread_join(sclosing_thread,NULL);
