@@ -34,6 +34,7 @@ void * handle_request(void *arg){
     int tries = 10;
     while((fd = open(fifoName,O_WRONLY|O_NONBLOCK)) == -1){ // Opening Client FIFO
         tries--;
+        if(tries == 0) break;
     }
     if(fd == -1){
         fprintf(stderr,"Error opening '%s' in WRITEONLY mode.\n",fifoName);
@@ -81,6 +82,7 @@ void * refuse_request(void *arg){
     int tries = 10;
     while((fd = open(fifoName,O_WRONLY|O_NONBLOCK)) == -1){ // Opening Client FIFO
         tries--;
+        if(tries == 0) break;
     }
     if(fd == -1){
         fprintf(stderr,"Error opening '%s' in WRITEONLY mode.\n",fifoName);
