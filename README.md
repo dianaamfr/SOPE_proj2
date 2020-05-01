@@ -66,7 +66,7 @@ Após interpretar a resposta do Servidor, o Cliente fecha(`close(...)`) e destr�
 
 ### *Receção dos pedidos nas threads do Servidor*
 
-Finalmente, tanto na função de início de thread que tem a responsabilidade de aceitar pedidos - `void * handle_request(void *arg)`; como na que é responsável por os recusar - `void * refuse_request(void *arg)`; procede-se à abertura do FIFO privado do Cliente com a função `open(...)` e, após processado o pedido recebido, escreve-se a respetiva resposta utilizando a função `write(...)`.  // TODO (a terminar)
+Finalmente, tanto na função de início de thread que tem a responsabilidade de aceitar pedidos - `void * handle_request(void *arg)`; como na que é responsável por os recusar - `void * refuse_request(void *arg)`; procede-se à abertura do FIFO privado do Cliente com a função `open(...)` no modo de escrita, ativando, mais uma vez, a flag `O_NONBLOCK` de modo a evitar que a thread bloqueie infinitamente no caso de , após processado o pedido recebido, escreve-se a respetiva resposta utilizando a função `write(...)`.  // TODO (a terminar)
 
 ## Tratemneto do sinal SIGPIPE
 
