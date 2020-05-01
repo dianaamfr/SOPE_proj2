@@ -31,7 +31,11 @@ void * handle_request(void *arg){
     sprintf(fifoName,"/tmp/%d.%lu",msg->pid,msg->tid);
 
     int fd;
-    if((fd = open(fifoName,O_WRONLY|O_NONBLOCK)) == -1){ // Opening Client FIFO
+    int tries = 10;
+    while((fd = open(fifoName,O_WRONLY|O_NONBLOCK)) == -1){ // Opening Client FIFO
+        tries--;
+    }
+    if(fd == -1){
         fprintf(stderr,"Error opening '%s' in WRITEONLY mode.\n",fifoName);
         logOP(GAVUP,msg->i,msg->dur,msg->pl);
         incrementThreadsAvailable();
@@ -47,6 +51,7 @@ void * handle_request(void *arg){
         logOP(GAVUP,msg->i,msg->dur,msg->pl);
         incrementThreadsAvailable();
         free(arg);
+        close(fd);
         return NULL;
     }
     logOP(ENTER,msg->i,msg->dur,msg->pl);
@@ -73,7 +78,11 @@ void * refuse_request(void *arg){
     sprintf(fifoName,"/tmp/%d.%lu",msg.pid,msg.tid);
     
     int fd;
-    if((fd = open(fifoName,O_WRONLY|O_NONBLOCK)) == -1){
+    int tries = 10;
+    while((fd = open(fifoName,O_WRONLY|O_NONBLOCK)) == -1){ // Opening Client FIFO
+        tries--;
+    }
+    if(fd == -1){
         fprintf(stderr,"Error opening '%s' in WRITEONLY mode.\n",fifoName);
         logOP(GAVUP,msg.i,msg.dur,msg.pl);
         incrementThreadsAvailable();
@@ -91,6 +100,7 @@ void * refuse_request(void *arg){
         logOP(GAVUP,msg.i,msg.dur,msg.pl);
         incrementThreadsAvailable();
         free(arg);
+        close(fd);
         return NULL;
     }
 
